@@ -24,6 +24,8 @@ import net.floodlightcontroller.packet.Ethernet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+//import org.zeromq.ZMQ;
+
 public class MACTracker implements IOFMessageListener, IFloodlightModule {
 
 	protected IFloodlightProviderService floodlightProvider;
@@ -81,14 +83,12 @@ public class MACTracker implements IOFMessageListener, IFloodlightModule {
 	@Override
 	public void startUp(FloodlightModuleContext context)
 			throws FloodlightModuleException {
-		// TODO Auto-generated method stub
 		floodlightProvider.addOFMessageListener(OFType.PACKET_IN, this);
 	}
 
 	@Override
 	public net.floodlightcontroller.core.IListener.Command receive(
 			IOFSwitch sw, OFMessage msg, FloodlightContext cntx) {
-		// TODO Auto-generated method stub
 		Ethernet eth =
                 IFloodlightProviderService.bcStore.get(cntx,
                                             IFloodlightProviderService.CONTEXT_PI_PAYLOAD);
@@ -105,5 +105,7 @@ public class MACTracker implements IOFMessageListener, IFloodlightModule {
         logger.info("Handled packet number " + numOfInPacket);
         return Command.CONTINUE;
 	}
+	
+
 
 }
