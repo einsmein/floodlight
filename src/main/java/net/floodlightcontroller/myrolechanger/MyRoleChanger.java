@@ -10,6 +10,7 @@ import org.projectfloodlight.openflow.protocol.OFMessage;
 import org.projectfloodlight.openflow.protocol.OFType;
 import org.projectfloodlight.openflow.protocol.OFErrorMsg;
 import org.projectfloodlight.openflow.protocol.OFErrorType;
+import org.apache.zookeeper.ZooKeeper;
 import org.projectfloodlight.openflow.protocol.OFBadRequestCode;
 import org.projectfloodlight.openflow.protocol.errormsg.OFBadRequestErrorMsg;
 
@@ -56,8 +57,8 @@ public class MyRoleChanger implements IFloodlightModule, IOFMessageListener {
 	@Override
 	public net.floodlightcontroller.core.IListener.Command receive(
 			IOFSwitch sw, OFMessage msg, FloodlightContext cntx) {
-		if (m.getType() != ERROR)
-			return Command.CONTINUE;
+//		if (m.getType() != ERROR)
+//			return Command.CONTINUE;
 
 		OFErrorMsg m = (OFErrorMsg) msg;
 
@@ -103,6 +104,11 @@ public class MyRoleChanger implements IFloodlightModule, IOFMessageListener {
 	public void startUp(FloodlightModuleContext context)
 			throws FloodlightModuleException {
 		floodlightProvider.addOFMessageListener(OFType.PACKET_IN, this);
+		try {
+			ZooKeeper zoo = new ZooKeeper(null, 0, null);
+		} catch (Exception ex) {
+			
+		}
 	}
 
 }
