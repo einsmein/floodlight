@@ -735,6 +735,7 @@ public class OFSwitchHandshakeHandler implements IOFConnectionListener {
 		 * @param error The error message
 		 */
 		protected void logErrorDisconnect(OFErrorMsg error) {
+			log.info("called from logerrordisconnect");
 			logError(error);
 			mainConnection.disconnect();
 		}
@@ -1279,6 +1280,7 @@ public class OFSwitchHandshakeHandler implements IOFConnectionListener {
 			// role changer will ignore the error if it isn't for it
 			boolean didHandle = roleChanger.deliverError(m);
 			if (!didHandle) {
+				log.info("called from waitinitialrolestate class processoferror");
 				logError(m);
 			}
 		}
@@ -1409,6 +1411,7 @@ public class OFSwitchHandshakeHandler implements IOFConnectionListener {
 				sw.setTableFull(true);
 			}
 			else {
+				log.info("called from masterstate class processoferror");
 				logError(m);
 			}
 			dispatchMessage(m);
@@ -1543,6 +1546,7 @@ public class OFSwitchHandshakeHandler implements IOFConnectionListener {
 			// role changer will ignore the error if it isn't for it
 			boolean didHandle = roleChanger.deliverError(m);
 			if (!didHandle) {
+				log.info("called from slavestate class processoferror");
 				logError(m);
 			}
 		}
