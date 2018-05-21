@@ -18,6 +18,7 @@ import net.floodlightcontroller.core.FloodlightContext;
 import net.floodlightcontroller.core.IFloodlightProviderService;
 import net.floodlightcontroller.core.IOFMessageListener;
 import net.floodlightcontroller.core.IOFSwitch;
+import net.floodlightcontroller.core.internal.FloodlightProvider;
 import net.floodlightcontroller.core.IListener.Command;
 import net.floodlightcontroller.core.module.FloodlightModuleContext;
 import net.floodlightcontroller.core.module.FloodlightModuleException;
@@ -27,15 +28,16 @@ import net.floodlightcontroller.debugcounter.IDebugCounter;
 import net.floodlightcontroller.debugcounter.IDebugCounterService;
 import net.floodlightcontroller.mactracker.MACTracker;
 import net.floodlightcontroller.packet.Ethernet;
+import zkconnecter.ZKConnector;
 
+import org.apache.zookeeper.ZooKeeper;
+import org.apache.zookeeper.common.Time;
 import org.jgroups.JChannel;
 import org.jgroups.Message;
 import org.jgroups.Receiver;
 import org.jgroups.ReceiverAdapter;
 import org.jgroups.View;
 
-import org.apache.zookeeper.WatchedEvent;
-import org.apache.zookeeper.common.Time;
 
 
 public class LoadCollector extends ReceiverAdapter implements IOFMessageListener, IFloodlightModule {
@@ -43,13 +45,14 @@ public class LoadCollector extends ReceiverAdapter implements IOFMessageListener
 	protected IDebugCounterService debugCounterService;
 
 	private IDebugCounter ctrPacketIn;
+	private ZKConnector zoo;
 	
 	protected Set<Long> macAddresses;
 	protected static Logger logger;
 	protected int numPacketIn;
 	protected double throughputPacketIn;
 	protected long startCountTime;
-
+	protected String controllerId;
 	private final String PACKAGE = LoadCollector.class.getPackage().getName();
 
     JChannel channel;
@@ -103,9 +106,22 @@ public class LoadCollector extends ReceiverAdapter implements IOFMessageListener
 	    logger = LoggerFactory.getLogger(LoadCollector.class);
 	    numPacketIn = 0;
 	    throughputPacketIn = 0;
-		startCountTime = Time.currentElapsedTime();
-	}
+//		startCountTime = Time.currentElapsedTime();
 
+
+		 Map<String, String> configParams = context.getConfigParams(FloodlightProvider.class);
+		 	controllerId = configParams.get("controllerId");
+		   
+		   try {
+		           zoo = new ZKConnector();
+		           zoo.connect("0.0.0.0");
+		   } catch (Exception e) {
+		           // TODO Auto-generated catch block
+		          e.printStackTrace();
+		   }
+	}
+	
+	
 	@Override
 	public void startUp(FloodlightModuleContext context) throws FloodlightModuleException {
 		floodlightProvider.addOFMessageListener(OFType.PACKET_IN, this);

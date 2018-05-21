@@ -156,6 +156,16 @@
 			<version>1.6.4</version>
 		</dependency>
 		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-api</artifactId>
+			<version>1.7.25</version>
+		</dependency>
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>log4j</artifactId>
+			<version>1.2.17</version>
+		</dependency>
+		<dependency>
 			<groupId>org.restlet.jse</groupId>
 			<artifactId>org.restlet</artifactId>
 			<version>${lib-restlet-version}</version>
@@ -279,10 +289,10 @@
 	    	<type>bundle</type>
 	    </dependency>
 	    <dependency>
-	        <groupId>org.apache.zookeeper</groupId>
-	        <artifactId>zookeeper</artifactId>
-	        <version>3.4.11</version>
-    </dependency>
+	    	<groupId>org.apache.zookeeper</groupId>
+	    	<artifactId>zookeeper</artifactId>
+	    	<version>3.4.12</version>
+	    </dependency>
 	</dependencies>
 	<properties>
 		<lib-restlet-version>2.3.2</lib-restlet-version>
