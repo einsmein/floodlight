@@ -38,13 +38,12 @@ public class ZKConnector {
 	      connectedSignal.await();
 	      return zoo;
 	   }
-//	   
-//
-//	   // Method to disconnect from zookeeper server
-//	   public void close() throws InterruptedException {
-//	      zoo.close();
-//	   }
-//	   
+
+	   // Method to disconnect from zookeeper server
+	   public void close() throws InterruptedException {
+	      zoo.close();
+	   }
+	   
 //
 //	   // Method to create znode in zookeeper ensemble
 //	   public void create(String path, byte[] data) throws 

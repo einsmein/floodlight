@@ -1,3 +1,23 @@
+# [CS503 Project]
+
+Added module:
+1. LoadCollector
+2. SwitchMigration
+
+Dependencies:
+Zookeeper-3.4.10
+jgroups-4.0.11-Final
+
+### Build and run from command line
+From floodlight folder, execute the following lines
+```bash
+ant
+java -cp "target/floodlight.jar:lib/*" net.floodlhtcontroller.core.Main
+```
+
+
+
+
 Floodlight OpenFlow Controller (OSS)
 ====================================
 

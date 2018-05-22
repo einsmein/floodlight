@@ -31,7 +31,6 @@ import net.floodlightcontroller.packet.Ethernet;
 import zkconnecter.ZKConnector;
 
 import org.apache.zookeeper.ZooKeeper;
-import org.apache.zookeeper.common.Time;
 import org.jgroups.JChannel;
 import org.jgroups.Message;
 import org.jgroups.Receiver;
