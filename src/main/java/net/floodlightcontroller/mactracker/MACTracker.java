@@ -31,6 +31,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.projectfloodlight.openflow.types.DatapathId;
 
+import net.floodlightcontroller.myrolechanger.IMyRoleChangerService;
+
 public class MACTracker implements IOFMessageListener, IFloodlightModule {
 
 	protected IFloodlightProviderService floodlightProvider;
@@ -40,6 +42,8 @@ public class MACTracker implements IOFMessageListener, IFloodlightModule {
 	protected Set<Long> macAddresses;
 	protected static Logger logger;
 	protected int numOfInPacket;
+
+  protected IMyRoleChangerService roleChangerService;
 	
 	@Override
 	public String getName() {
@@ -75,6 +79,8 @@ public class MACTracker implements IOFMessageListener, IFloodlightModule {
 		Collection<Class<? extends IFloodlightService>> l =
 	        new ArrayList<Class<? extends IFloodlightService>>();
 	    l.add(IFloodlightProviderService.class);
+      l.add(IOFSwitchService.class);
+      l.add(IMyRoleChangerService.class);
 	    return l;
 	}
 
@@ -85,10 +91,11 @@ public class MACTracker implements IOFMessageListener, IFloodlightModule {
 		floodlightProvider = context.getServiceImpl(IFloodlightProviderService.class);
 		switchService = context.getServiceImpl(IOFSwitchService.class);
 		// statisticsService = context.getServiceImpl(IStatisticsService.class);
+    roleChangerService = context.getServiceImpl(IMyRoleChangerService.class);
 		
-	    macAddresses = new ConcurrentSkipListSet<Long>();
-	    logger = LoggerFactory.getLogger(MACTracker.class);
-	    numOfInPacket = 0;
+    macAddresses = new ConcurrentSkipListSet<Long>();
+    logger = LoggerFactory.getLogger(MACTracker.class);
+    numOfInPacket = 0;
 	}
 
 	@Override
@@ -115,7 +122,7 @@ public class MACTracker implements IOFMessageListener, IFloodlightModule {
         }
         
         numOfInPacket = numOfInPacket + 1;
-        logger.info("Handled packet number " + numOfInPacket);
+        logger.info("Handled packet number " + numOfInPacket + " : " + roleChangerService.getANumber());
         
         Map<DatapathId, IOFSwitch> switchMap = switchService.getAllSwitchMap();
         
