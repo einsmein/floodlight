@@ -1,6 +1,7 @@
 package net.floodlightcontroller.myrolechanger;
 
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Map;
 
 import net.floodlightcontroller.core.IOFConnectionBackend;
@@ -27,13 +28,15 @@ import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.Set;
 
 import net.floodlightcontroller.packet.Ethernet;
+import net.floodlightcontroller.restserver.IRestApiService;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class MyRoleChanger implements IFloodlightModule, IOFMessageListener {
+public class MyRoleChanger implements IFloodlightModule, IOFMessageListener, IMyRoleChangerService {
 	protected IFloodlightProviderService floodlightProvider;
 	protected static Logger logger;
+	// protected IRestApiService restApi;
 
 	@Override
 	public String getName() {
@@ -56,7 +59,9 @@ public class MyRoleChanger implements IFloodlightModule, IOFMessageListener {
 	@Override
 	public net.floodlightcontroller.core.IListener.Command receive(
 			IOFSwitch sw, OFMessage msg, FloodlightContext cntx) {
-		if (m.getType() != ERROR)
+		logger.info("message came to this module");
+
+		if (msg.getType() != OFType.ERROR)
 			return Command.CONTINUE;
 
 		OFErrorMsg m = (OFErrorMsg) msg;
@@ -76,19 +81,24 @@ public class MyRoleChanger implements IFloodlightModule, IOFMessageListener {
 
 	@Override
 	public Collection<Class<? extends IFloodlightService>> getModuleServices() {
-		return null;
+		Collection<Class<? extends IFloodlightService>> l = new ArrayList<Class<? extends IFloodlightService>>();
+		l.add(IMyRoleChangerService.class);
+		return l;
 	}
 
 	@Override
 	public Map<Class<? extends IFloodlightService>, IFloodlightService> getServiceImpls() {
 		// TODO Auto-generated method stub
-		return null;
+		Map<Class<? extends IFloodlightService>, IFloodlightService> m = new HashMap<Class<? extends IFloodlightService>, IFloodlightService>();
+		m.put(IMyRoleChangerService.class, this);
+		return m;
 	}
 
 	@Override
 	public Collection<Class<? extends IFloodlightService>> getModuleDependencies() {
 		Collection<Class<? extends IFloodlightService>> l = new ArrayList<Class<? extends IFloodlightService>>();
 		l.add(IFloodlightProviderService.class);
+		// l.add(IRestApiService.class);
 		return l;
 	}
 
@@ -97,12 +107,18 @@ public class MyRoleChanger implements IFloodlightModule, IOFMessageListener {
 			throws FloodlightModuleException {
 		floodlightProvider = context.getServiceImpl(IFloodlightProviderService.class);
 		logger = LoggerFactory.getLogger(MyRoleChanger.class);
+		// restApi = context.getServiceImpl(IRestApiService.class);
 	}
 
 	@Override
 	public void startUp(FloodlightModuleContext context)
 			throws FloodlightModuleException {
 		floodlightProvider.addOFMessageListener(OFType.PACKET_IN, this);
+	}
+
+	@Override
+	public int getANumber() {
+		return 1503;
 	}
 
 }
