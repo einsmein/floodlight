@@ -9,7 +9,7 @@
   </root>
   <logger name="io" level="INFO"></logger> <!-- Netty logging -->
   <logger name="LogService" level="WARN"/> <!-- Restlet access logging -->
-  <logger name="net.floodlightcontroller" level="INFO"/>
+  <logger name="net.floodlightcontroller" level="INFO"></logger>
   <logger name="org.sdnplatform" level="INFO"/>
-  <logger name="net.floodlightcontroller.core.internal" level="DEBUG"/>
+  <logger name="net.floodlightcontroller.core.internal" level="INFO"/>
 </configuration>

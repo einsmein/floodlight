@@ -5,6 +5,7 @@ import java.io.InputStreamReader;
 import java.security.Timestamp;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentSkipListSet;
@@ -13,6 +14,8 @@ import org.projectfloodlight.openflow.protocol.OFMessage;
 import org.projectfloodlight.openflow.protocol.OFType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.gson.Gson;
 
 import net.floodlightcontroller.core.FloodlightContext;
 import net.floodlightcontroller.core.IFloodlightProviderService;
@@ -31,6 +34,7 @@ import net.floodlightcontroller.packet.Ethernet;
 import zkconnecter.ZKConnector;
 
 import org.apache.zookeeper.ZooKeeper;
+import org.jgroups.Address;
 import org.jgroups.JChannel;
 import org.jgroups.Message;
 import org.jgroups.Receiver;
@@ -44,7 +48,8 @@ public class LoadCollector extends ReceiverAdapter implements IOFMessageListener
 	protected IDebugCounterService debugCounterService;
 
 	private IDebugCounter ctrPacketIn;
-	private ZKConnector zoo;
+//	private ZKConnector zoo;
+	private HashMap<Address, Double> ctrlLoads; 
 	
 	protected Set<Long> macAddresses;
 	protected static Logger logger;
@@ -100,24 +105,24 @@ public class LoadCollector extends ReceiverAdapter implements IOFMessageListener
 		floodlightProvider = context.getServiceImpl(IFloodlightProviderService.class);
 		debugCounterService = context.getServiceImpl(IDebugCounterService.class);
 		registerDebugCounters();
-		
+
+		ctrlLoads = new HashMap<>();
 	    macAddresses = new ConcurrentSkipListSet<Long>();
 	    logger = LoggerFactory.getLogger(LoadCollector.class);
 	    numPacketIn = 0;
 	    throughputPacketIn = 0;
-//		startCountTime = Time.currentElapsedTime();
-
+		startCountTime = System.currentTimeMillis();
 
 		 Map<String, String> configParams = context.getConfigParams(FloodlightProvider.class);
 		 	controllerId = configParams.get("controllerId");
 		   
-		   try {
-		           zoo = new ZKConnector();
-		           zoo.connect("0.0.0.0");
-		   } catch (Exception e) {
-		           // TODO Auto-generated catch block
-		          e.printStackTrace();
-		   }
+//		   try {
+//		           zoo = new ZKConnector();
+//		           zoo.connect("0.0.0.0");
+//		   } catch (Exception e) {
+//		           // TODO Auto-generated catch block
+//		          e.printStackTrace();
+//		   }
 	}
 	
 	
@@ -128,9 +133,15 @@ public class LoadCollector extends ReceiverAdapter implements IOFMessageListener
 		try {
 			channel= new JChannel().setReceiver(this); // use the default config, udp.xml
 			channel.connect("ChatCluster");
+			channel.send(null, "FIRST JOIN, MY ADDRESS: " + channel.getAddress());
+			logger.info("Channel address: " + channel.getAddress() + "//" + channel.getAddressAsString());
+
+//			zoo.create("/" + controllerId + "Address", gson.toJson(channel.getAddress()).getBytes(), true);
 //			eventLoop();
 //			channel.close();
-		} catch(Exception ex) {}
+		} catch(Exception ex) {
+			ex.printStackTrace();
+		}
 	}
 	
 	@Override
@@ -157,35 +168,13 @@ public class LoadCollector extends ReceiverAdapter implements IOFMessageListener
         long period = lastMod-startCountTime; 
         
         // If the last update of packet in has been more than a minute
-        if(period > 60000) {
-        	throughputPacketIn = numIn*1.0/period;
-        	ctrPacketIn.reset();
-        	startCountTime = lastMod;
-
-            Message noti = new Message(null, "" + numIn + ", throughtput: " + throughputPacketIn + ", period: " + period);
-            try {
-				channel.send(noti);
-			} catch (Exception e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-            
-        }
-
         // If it's the 10th packet since the last throughput update
-        if((numIn % 100) == 0) {
+        if(period > 10000 || numIn % 100 == 0) {
         	throughputPacketIn = numIn*1.0/period;
         	ctrPacketIn.reset();
         	startCountTime = lastMod;
+        	informLoad(throughputPacketIn);
             
-	        try {
-	            System.out.print("> "); System.out.flush();
-	            Message noti = new Message(null, "" + numIn + ", throughtput: " + throughputPacketIn);
-	            channel.send(noti);
-	        }
-	        catch (Exception e) {
-	            System.out.print(e.toString());
-	        }
         }
 		
         return Command.CONTINUE;
@@ -216,11 +205,24 @@ public class LoadCollector extends ReceiverAdapter implements IOFMessageListener
 	}
 
 	public void receive(Message msg) {
+//		if(msg.getObject().getClass() == Load.class) {
+//			ctrlLoads.put(msg.getSrc(), msg.getObject());			
+//		}
+		
 	    System.out.println(msg.getSrc() + ": " + msg.getObject());
 	    System.out.println("View:\n" + channel.getView());
 	    System.out.println("Address:\n" + channel.getAddress());
 	}
-
+	
+	public void informLoad(double load) {		
+		try {
+			Message loadMsg = new Message(null, new Load(load));
+			channel.send(loadMsg);
+		}
+		catch (Exception e) {
+			System.out.print(e.toString());
+		}
+	}
 	
 	// *************************
 	//  Register debug counters

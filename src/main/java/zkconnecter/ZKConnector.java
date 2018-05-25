@@ -44,41 +44,50 @@ public class ZKConnector {
 	      zoo.close();
 	   }
 	   
-//
-//	   // Method to create znode in zookeeper ensemble
-//	   public void create(String path, byte[] data) throws 
-//	      KeeperException,InterruptedException {
-//	      zoo.create(path, data, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
-//	   }
-//	
-//	   public byte[] get(String path) throws KeeperException, InterruptedException {
-//		   byte[] data = zoo.getData(path, true, zoo.exists(path, true));
-//		   return data;
-//	   }
-//	   
-//	   // Method to check existence of znode and its status, if znode is available.
-//	   public Stat znode_exists(String path) throws
-//	      KeeperException,InterruptedException {
-//	      return zoo.exists(path, true);
-//	   }
-//
-//	   // Method to update the data in a znode. Similar to getData but without watcher.
-//	   public void update(String path, byte[] data) throws
-//	      KeeperException,InterruptedException {
-//	      zoo.setData(path, data, zoo.exists(path,true).getVersion());
-//	   }
-//	   
-//	   // Method to check existence of znode and its status, if znode is available.
-//	   public void delete(String path) throws KeeperException,InterruptedException {
-//	      zoo.delete(path,zoo.exists(path,true).getVersion());
-//	   }
-//	   
-////	   try {
-////	         conn = new ZooKeeperConnection();
-////	         zk = conn.connect("localhost");
-////	         create(path, data); // Create the data to the specified path
-////	         conn.close();
-////	      } catch (Exception e) {
-////	         System.out.println(e.getMessage()); //Catch error message
-////	      }
+
+	   // Method to create znode in zookeeper ensemble
+	   public void create(String path, byte[] data) throws 
+	      KeeperException,InterruptedException {
+		   create(path, data, false);
+	   }
+	   public void create(String path, byte[] data, boolean replace) throws 
+	      KeeperException,InterruptedException {
+		  if (replace && znode_exists(path) != null) {
+			  update(path, data);
+		  }
+		  else {
+			  zoo.create(path, data, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+		  }
+	   }
+	
+	   public byte[] get(String path) throws KeeperException, InterruptedException {
+		   byte[] data = zoo.getData(path, true, zoo.exists(path, true));
+		   return data;
+	   }
+	   
+	   // Method to check existence of znode and its status, if znode is available.
+	   public Stat znode_exists(String path) throws
+	      KeeperException,InterruptedException {
+	      return zoo.exists(path, true);
+	   }
+
+	   // Method to update the data in a znode. Similar to getData but without watcher.
+	   public void update(String path, byte[] data) throws
+	      KeeperException,InterruptedException {
+	      zoo.setData(path, data, zoo.exists(path,true).getVersion());
+	   }
+	   
+	   // Method to check existence of znode and its status, if znode is available.
+	   public void delete(String path) throws KeeperException,InterruptedException {
+	      zoo.delete(path,zoo.exists(path,true).getVersion());
+	   }
+	   
+//	   try {
+//	         conn = new ZooKeeperConnection();
+//	         zk = conn.connect("localhost");
+//	         create(path, data); // Create the data to the specified path
+//	         conn.close();
+//	      } catch (Exception e) {
+//	         System.out.println(e.getMessage()); //Catch error message
+//	      }
 }
