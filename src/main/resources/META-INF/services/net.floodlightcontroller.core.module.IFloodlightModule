@@ -32,3 +32,4 @@ net.floodlightcontroller.cpanalyzer.CPAnalyzer
 net.floodlightcontroller.hasupport.HAController
 net.floodlightcontroller.mactracker.MACTracker
 net.floodlightcontroller.loadcollector.LoadCollector
+net.floodlightcontroller.myrolechanger.MyRoleChanger
