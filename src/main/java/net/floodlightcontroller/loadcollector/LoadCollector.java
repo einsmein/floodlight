@@ -15,7 +15,7 @@ import org.projectfloodlight.openflow.protocol.OFType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.gson.Gson;
+//import com.google.gson.Gson;
 
 import net.floodlightcontroller.core.FloodlightContext;
 import net.floodlightcontroller.core.IFloodlightProviderService;
@@ -33,7 +33,7 @@ import net.floodlightcontroller.mactracker.MACTracker;
 import net.floodlightcontroller.packet.Ethernet;
 import zkconnecter.ZKConnector;
 
-import org.apache.zookeeper.ZooKeeper;
+//import org.apache.zookeeper.ZooKeeper;
 import org.jgroups.Address;
 import org.jgroups.JChannel;
 import org.jgroups.Message;
@@ -41,14 +41,25 @@ import org.jgroups.Receiver;
 import org.jgroups.ReceiverAdapter;
 import org.jgroups.View;
 
-
+import org.projectfloodlight.openflow.types.DatapathId;
+import net.floodlightcontroller.myrolechanger.IMyRoleChangerService;
 
 public class LoadCollector extends ReceiverAdapter implements IOFMessageListener, IFloodlightModule {
 	protected IFloodlightProviderService floodlightProvider;
 	protected IDebugCounterService debugCounterService;
+	protected IMyRoleChangerService roleChangerService;
 
 	private IDebugCounter ctrPacketIn;
 	private HashMap<String, Double> ctrlLoad;
+
+	// HashMap to store latest measured switch load
+	private HashMap<DatapathId, Double> switchLoads;
+
+	// HashMap to store INPACKETs from each switch since last switch load update.
+	private HashMap<DatapathId, Integer> inpacketPerSwitchCounters;
+
+	private Integer ctrlThreshold;
+
 	
 	protected Set<Long> macAddresses;
 	protected static Logger logger;
@@ -96,6 +107,7 @@ public class LoadCollector extends ReceiverAdapter implements IOFMessageListener
 		Collection<Class<? extends IFloodlightService>> l =
 		    new ArrayList<Class<? extends IFloodlightService>>();
 		l.add(IFloodlightProviderService.class);
+		l.add(IMyRoleChangerService.class);
 		return l;
 	}
 
@@ -103,6 +115,8 @@ public class LoadCollector extends ReceiverAdapter implements IOFMessageListener
 	public void init(FloodlightModuleContext context) throws FloodlightModuleException {
 		floodlightProvider = context.getServiceImpl(IFloodlightProviderService.class);
 		debugCounterService = context.getServiceImpl(IDebugCounterService.class);
+		roleChangerService = context.getServiceImpl(IMyRoleChangerService.class);
+
 		registerDebugCounters();
 
 		ctrlLoad = new HashMap<>();
@@ -114,7 +128,10 @@ public class LoadCollector extends ReceiverAdapter implements IOFMessageListener
 
 		 Map<String, String> configParams = context.getConfigParams(FloodlightProvider.class);
 		 controllerId = configParams.get("controllerId");
-		   
+
+		switchLoads = new HashMap<>();
+		inpacketPerSwitchCounters = new HashMap<>();
+		ctrlThreshold = 50;
 	}
 	
 	
@@ -148,6 +165,15 @@ public class LoadCollector extends ReceiverAdapter implements IOFMessageListener
         
         numPacketIn = numPacketIn + 1;
         ctrPacketIn.increment();
+
+        // Increment number of INPACKET for this switch
+        DatapathId swId = sw.getId();
+        if (inpacketPerSwitchCounters.containsKey(swId))
+        	inpacketPerSwitchCounters.put(sw.getId(), 
+        																inpacketPerSwitchCounters.get(swId) + 1);
+        else
+        	inpacketPerSwitchCounters.put(sw.getId(), 1);
+        // =============================================
         
         long numIn = ctrPacketIn.getCounterValue();
         long lastMod = ctrPacketIn.getLastModified();
@@ -156,12 +182,25 @@ public class LoadCollector extends ReceiverAdapter implements IOFMessageListener
         
         // If the last update of packet in has been more than a minute
         // If it's the 10th packet since the last throughput update
-        if(period > 8000 || numIn % 70 == 0) {
-        	throughputPacketIn = numIn*1.0/period;
+        if(period > 10000 || numIn % 100 == 0) {
+        	throughputPacketIn = numIn * 1.0 / (period / 1000);
         	ctrPacketIn.reset();
         	startCountTime = lastMod;
-        	informLoad(throughputPacketIn);
-//            sendMessage("hey from " + channel.getAddress());
+        	informLoad(throughputPacketIn);	// inform load through segment?
+            
+          // Update the load of each switch (unit: INPACKET per second)
+        	for (HashMap.Entry<DatapathId, Integer> entry: inpacketPerSwitchCounters.entrySet()) {
+        		switchLoads.put(entry.getKey(), 
+        										(double) (entry.getValue()) / period * 1000);
+
+        		// Reset INPACKET counter for the switch
+        		inpacketPerSwitchCounters.put(entry.getKey(), 0);
+        	}
+        	// ==================================================================
+
+        	// Try to migrate switch if the current ctrl load exceeds CT
+        	// if (throughputPacketIn > ctrlThreshold)
+        	// 	roleChangerService.doSwitchMigration(address, ctrlThreshold, ctrlLoads, switchLoads);
         }
 		
         return Command.CONTINUE;

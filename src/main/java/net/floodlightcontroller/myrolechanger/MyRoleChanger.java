@@ -2,6 +2,7 @@ package net.floodlightcontroller.myrolechanger;
 
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 
 import net.floodlightcontroller.core.IOFConnectionBackend;
@@ -38,9 +39,12 @@ import java.util.Set;
 
 import net.floodlightcontroller.packet.Ethernet;
 import net.floodlightcontroller.restserver.IRestApiService;
+import net.floodlightcontroller.statistics.IStatisticsService;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.jgroups.Address;
+import org.projectfloodlight.openflow.types.DatapathId;
 
 public class MyRoleChanger extends ReceiverAdapter implements IFloodlightModule, IOFMessageListener, IMyRoleChangerService {
 	protected IFloodlightProviderService floodlightProvider;
@@ -50,6 +54,8 @@ public class MyRoleChanger extends ReceiverAdapter implements IFloodlightModule,
 	// protected IRestApiService restApi;
 	
 	JChannel channel;
+	protected IStatisticsService statisticCollector;
+
 
 	@Override
 	public String getName() {
@@ -112,7 +118,7 @@ public class MyRoleChanger extends ReceiverAdapter implements IFloodlightModule,
 	public Collection<Class<? extends IFloodlightService>> getModuleDependencies() {
 		Collection<Class<? extends IFloodlightService>> l = new ArrayList<Class<? extends IFloodlightService>>();
 		l.add(IFloodlightProviderService.class);
-		// l.add(IRestApiService.class);
+		l.add(IStatisticsService.class);
 		return l;
 	}
 
@@ -122,8 +128,10 @@ public class MyRoleChanger extends ReceiverAdapter implements IFloodlightModule,
 		floodlightProvider = context.getServiceImpl(IFloodlightProviderService.class);
 		logger = LoggerFactory.getLogger(MyRoleChanger.class);
 
+
 		 Map<String, String> configParams = context.getConfigParams(FloodlightProvider.class);
 		 controllerId = configParams.get("controllerId");
+		statisticCollector = context.getServiceImpl(IStatisticsService.class);
 	}
 
 	@Override
@@ -187,4 +195,80 @@ public class MyRoleChanger extends ReceiverAdapter implements IFloodlightModule,
 		}
 	}
 
+	@Override
+	public void doSwitchMigration(Address ctrlAddress, Integer ctrlThreshold,
+								  HashMap<Address, Double> ctrlLoads,
+                                  HashMap<DatapathId, Double> swLoads) {
+		// Only the controller with the highest load can migrate switch.
+		if (!isHighestLoadCtrl(ctrlAddress, ctrlLoads))
+			return;
+
+		// Migrate to the controller with lowest load.
+		// PROBLEM: we are ignoring the fact that this controller can exceed CT.
+		Address targetCtrlAddress = getLowestLoadCtrl(ctrlAddress, ctrlLoads);
+
+		// Find target switch to migrate whose load is closest the following value.
+		DatapathId targetSwId = getTargetSwitch(
+				(ctrlThreshold - ctrlLoads.get(targetCtrlAddress)) * 0.7, swLoads);
+
+		// Send a message to the target controller containing MASTER:targetSwId
+		// ...
+	}
+
+	private boolean isHighestLoadCtrl(Address ctrlAddress,
+									  HashMap<Address, Double> ctrlLoads) {
+		Address highestLoadCtrlAddress = ctrlAddress;
+		Double highestLoad = ctrlLoads.get(ctrlAddress);
+
+		for (HashMap.Entry<Address, Double> entry: ctrlLoads.entrySet()) {
+			if (entry.getValue() > highestLoad) {
+				highestLoad = entry.getValue();
+				highestLoadCtrlAddress = entry.getKey();
+			}
+		}
+
+		return (highestLoadCtrlAddress == ctrlAddress);
+	}
+
+	private Address getLowestLoadCtrl(Address ctrlAddress,
+									  HashMap<Address, Double> ctrlLoads) {
+		HashMap<Address, Double> loads = new HashMap<>(ctrlLoads);
+		loads.remove(ctrlAddress);
+		// POTENTIAL PROBLEM: what if hashmap is empty.
+
+		Iterator itr = loads.entrySet().iterator();
+		HashMap.Entry<Address, Double> entry = (HashMap.Entry<Address, Double>) itr;
+		Address lowestLoadCtrlAddress = entry.getKey();
+		Double lowestLoad = entry.getValue();
+
+		while (itr.hasNext()) {
+			entry = (HashMap.Entry<Address, Double>) itr.next();
+
+			if (entry.getValue() < lowestLoad) {
+				lowestLoad = entry.getValue();
+				lowestLoadCtrlAddress = entry.getKey();
+			}
+		}
+
+		return lowestLoadCtrlAddress;
+	}
+
+	private DatapathId getTargetSwitch(Double loadThreshold,
+									   HashMap<DatapathId, Double> swLoads) {
+		Iterator itr = swLoads.entrySet().iterator();
+		HashMap.Entry<DatapathId, Double> entry = (HashMap.Entry<DatapathId, Double>) itr;
+		DatapathId targetId = entry.getKey();
+		Double targetLoad = entry.getValue();
+
+		while (itr.hasNext()) {
+			entry = (HashMap.Entry<DatapathId, Double>) itr.next();
+
+			if (entry.getValue() < loadThreshold && entry.getValue() > targetLoad) {
+				targetLoad = entry.getValue();
+				targetId = entry.getKey();
+			}
+		}
+
+		return targetId;
+	}
 }
