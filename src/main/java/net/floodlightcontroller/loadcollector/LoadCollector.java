@@ -134,7 +134,6 @@ public class LoadCollector extends ReceiverAdapter implements IOFMessageListener
 		ctrlThreshold = 50;
 	}
 	
-	
 	@Override
 	public void startUp(FloodlightModuleContext context) throws FloodlightModuleException {
 		floodlightProvider.addOFMessageListener(OFType.PACKET_IN, this);
@@ -243,24 +242,13 @@ public class LoadCollector extends ReceiverAdapter implements IOFMessageListener
 	public void informLoad(double load) {		
 		try {
 			channel.send(null, new LoadInfo(controllerId, load));
-            logger.info("Sent throughput message and reset counter, throughput = " + load);
+      logger.info("Sent throughput message and reset counter, throughput = " + load);
 		}
 		catch (Exception e) {
 			System.out.print(e.toString());
 		}
 	}
-	
-//	public void sendMessage(String message) {
-//		try {
-//			Address a = ctrlLoads.keySet().iterator().next();
-//			channel.send(a, message);
-//            logger.info("sending "+ message + "to " + a);
-//		}
-//		catch (Exception e) {
-//			System.out.print(e.toString());
-//		}
-//	}
-	
+
 	// *************************
 	//  Register debug counters
 	// *************************

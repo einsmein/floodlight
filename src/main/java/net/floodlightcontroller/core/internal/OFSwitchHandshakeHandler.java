@@ -1719,7 +1719,7 @@ public class OFSwitchHandshakeHandler implements IOFConnectionListener {
 	 * Forwards to RoleChanger. See there.
 	 * @param role
 	 */
-	void sendRoleRequestIfNotPending(OFControllerRole role) {
+	public void sendRoleRequestIfNotPending(OFControllerRole role) {
 		try {
 			roleChanger.sendRoleRequestIfNotPending(role, 0);
 		} catch (IOException e) {
