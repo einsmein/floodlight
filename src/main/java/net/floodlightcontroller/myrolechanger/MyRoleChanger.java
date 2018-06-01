@@ -143,7 +143,7 @@ public class MyRoleChanger implements IFloodlightModule, IOFMessageListener, IMy
 				(ctrlThreshold - ctrlLoads.get(targetCtrlAddress)) * 0.7, swLoads);
 
 		// Send a message to the target controller containing MASTER:targetSwId
-		...
+		// ...
 	}
 
 	private boolean isHighestLoadCtrl(Address ctrlAddress,
