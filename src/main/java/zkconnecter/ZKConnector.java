@@ -1,23 +1,23 @@
 package zkconnecter;
 
-import org.apache.zookeeper.ZooKeeper;
+//import org.apache.zookeeper.ZooKeeper;
+//
+//import java.io.IOException;
+//import java.util.concurrent.CountDownLatch;
+//
+//
+//import org.apache.zookeeper.KeeperException;
+//import org.apache.zookeeper.WatchedEvent;
+//import org.apache.zookeeper.Watcher;
+//import org.apache.zookeeper.Watcher.Event.KeeperState;
+//import org.apache.zookeeper.ZooDefs;
+//import org.apache.zookeeper.ZooKeeper;
+//import org.apache.zookeeper.AsyncCallback.StatCallback;
+//import org.apache.zookeeper.CreateMode;
+//import org.apache.zookeeper.KeeperException.Code;
+//import org.apache.zookeeper.data.Stat;
 
-import java.io.IOException;
-import java.util.concurrent.CountDownLatch;
-
-
-import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.WatchedEvent;
-import org.apache.zookeeper.Watcher;
-import org.apache.zookeeper.Watcher.Event.KeeperState;
-import org.apache.zookeeper.ZooDefs;
-import org.apache.zookeeper.ZooKeeper;
-import org.apache.zookeeper.AsyncCallback.StatCallback;
-import org.apache.zookeeper.CreateMode;
-import org.apache.zookeeper.KeeperException.Code;
-import org.apache.zookeeper.data.Stat;
-
-public class ZKConnector {
+public class ZKConnector {/*
 	// declare zookeeper instance to access ZooKeeper ensemble
 	   private ZooKeeper zoo;
 	   final CountDownLatch connectedSignal = new CountDownLatch(1);
@@ -90,4 +90,4 @@ public class ZKConnector {
 //	      } catch (Exception e) {
 //	         System.out.println(e.getMessage()); //Catch error message
 //	      }
-}
+*/}

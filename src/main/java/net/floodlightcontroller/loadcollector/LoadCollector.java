@@ -134,7 +134,6 @@ public class LoadCollector extends ReceiverAdapter implements IOFMessageListener
 		ctrlThreshold = 50;
 	}
 	
-	
 	@Override
 	public void startUp(FloodlightModuleContext context) throws FloodlightModuleException {
 		floodlightProvider.addOFMessageListener(OFType.PACKET_IN, this);
@@ -237,15 +236,15 @@ public class LoadCollector extends ReceiverAdapter implements IOFMessageListener
 			logger.info("Update load hash map " + ctrlLoad.toString());
 		}
 		
-	    System.out.println(msg.getSrc() + ": " + (msg.getObject() instanceof LoadInfo));
-	    System.out.println("View:\n" + channel.getView());
-	    System.out.println("Address:\n" + channel.getAddress());
+    System.out.println(msg.getSrc() + ": " + (msg.getObject() instanceof LoadInfo));
+    System.out.println("View:\n" + channel.getView());
+    System.out.println("Address:\n" + channel.getAddress());
 	}
 	
 	public void informLoad(double load) {		
 		try {
 			channel.send(null, new LoadInfo(controllerId, load));
-            logger.info("Sent throughput message and reset counter, throughput = " + load);
+      logger.info("Sent throughput message and reset counter, throughput = " + load);
 		}
 		catch (Exception e) {
 			System.out.print(e.toString());
