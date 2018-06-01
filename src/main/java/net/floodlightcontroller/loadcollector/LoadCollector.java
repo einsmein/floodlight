@@ -15,7 +15,7 @@ import org.projectfloodlight.openflow.protocol.OFType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.gson.Gson;
+//import com.google.gson.Gson;
 
 import net.floodlightcontroller.core.FloodlightContext;
 import net.floodlightcontroller.core.IFloodlightProviderService;
@@ -33,7 +33,7 @@ import net.floodlightcontroller.mactracker.MACTracker;
 import net.floodlightcontroller.packet.Ethernet;
 import zkconnecter.ZKConnector;
 
-import org.apache.zookeeper.ZooKeeper;
+//import org.apache.zookeeper.ZooKeeper;
 import org.jgroups.Address;
 import org.jgroups.JChannel;
 import org.jgroups.Message;

@@ -9,7 +9,7 @@ import net.floodlightcontroller.core.module.IFloodlightService;
 public interface IMyRoleChangerService extends IFloodlightService {
   public int getANumber();
 
-  public void doSwitchMigration(Address ctrlAddress,
+  public void doSwitchMigration(Address ctrlAddress, Integer ctrlThreshold,
                                 HashMap<Address, Double> ctrlLoads,
                                 HashMap<DatapathId, Double> swLoads);
 }
