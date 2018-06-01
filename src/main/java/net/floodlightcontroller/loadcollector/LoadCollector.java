@@ -41,7 +41,7 @@ import org.jgroups.Receiver;
 import org.jgroups.ReceiverAdapter;
 import org.jgroups.View;
 
-
+import org.projectfloodlight.openflow.types.DatapathId;
 
 public class LoadCollector extends ReceiverAdapter implements IOFMessageListener, IFloodlightModule {
 	protected IFloodlightProviderService floodlightProvider;
@@ -50,6 +50,12 @@ public class LoadCollector extends ReceiverAdapter implements IOFMessageListener
 	private IDebugCounter ctrPacketIn;
 //	private ZKConnector zoo;
 	private HashMap<Address, Double> ctrlLoads; 
+
+	// HashMap to store latest measured switch load
+	private HashMap<DatapathId, Double> switchLoads;
+
+	// HashMap to store INPACKETs from each switch since last switch load update.
+	private HashMap<DatapathId, Integer> inpacketPerSwitchCounters;
 	
 	protected Set<Long> macAddresses;
 	protected static Logger logger;
@@ -123,6 +129,9 @@ public class LoadCollector extends ReceiverAdapter implements IOFMessageListener
 //		           // TODO Auto-generated catch block
 //		          e.printStackTrace();
 //		   }
+
+		switchLoads = new HashMap<>();
+		inpacketPerSwitchCounters = new HashMap<>();
 	}
 	
 	
@@ -160,6 +169,15 @@ public class LoadCollector extends ReceiverAdapter implements IOFMessageListener
         
         numPacketIn = numPacketIn + 1;
         ctrPacketIn.increment();
+
+        // Increment number of INPACKET for this switch
+        DatapathId swId = sw.getId();
+        if (inpacketPerSwitchCounters.containsKey(swId))
+        	inpacketPerSwitchCounters.put(sw.getId(), 
+        																inpacketPerSwitchCounters.get(swId) + 1);
+        else
+        	inpacketPerSwitchCounters.put(sw.getId(), 1);
+        // =============================================
         
         long numIn = ctrPacketIn.getCounterValue();
         logger.info("Handled packet number " + numPacketIn + ", counter: " + ctrPacketIn.getCounterValue());
@@ -173,8 +191,17 @@ public class LoadCollector extends ReceiverAdapter implements IOFMessageListener
         	throughputPacketIn = numIn*1.0/period;
         	ctrPacketIn.reset();
         	startCountTime = lastMod;
-        	informLoad(throughputPacketIn);
+        	informLoad(throughputPacketIn);	// inform load through segment?
             
+          // Update the load of each switch (unit: INPACKET per second)
+        	for (HashMap.Entry<DatapathId, Integer> entry: inpacketPerSwitchCounters.entrySet()) {
+        		switchLoads.put(entry.getKey(), 
+        										(double) (entry.getValue()) / period * 1000);
+
+        		// Reset INPACKET counter for the switch
+        		inpacketPerSwitchCounters.put(entry.getKey(), 0);
+        	}
+        	// ==================================================================
         }
 		
         return Command.CONTINUE;
