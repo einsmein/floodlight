@@ -169,8 +169,7 @@ public class LoadCollector extends ReceiverAdapter implements IOFMessageListener
         // Increment number of INPACKET for this switch
         DatapathId swId = sw.getId();
         if (inpacketPerSwitchCounters.containsKey(swId))
-        	inpacketPerSwitchCounters.put(sw.getId(), 
-        																inpacketPerSwitchCounters.get(swId) + 1);
+        	inpacketPerSwitchCounters.put(sw.getId(), inpacketPerSwitchCounters.get(swId) + 1);
         else
         	inpacketPerSwitchCounters.put(sw.getId(), 1);
         // =============================================
@@ -190,8 +189,7 @@ public class LoadCollector extends ReceiverAdapter implements IOFMessageListener
             
           // Update the load of each switch (unit: INPACKET per second)
         	for (HashMap.Entry<DatapathId, Integer> entry: inpacketPerSwitchCounters.entrySet()) {
-        		switchLoads.put(entry.getKey(), 
-        										(double) (entry.getValue()) / period * 1000);
+        		switchLoads.put(entry.getKey(), (double) (entry.getValue()) / period * 1000);
 
         		// Reset INPACKET counter for the switch
         		inpacketPerSwitchCounters.put(entry.getKey(), 0);
@@ -237,7 +235,7 @@ public class LoadCollector extends ReceiverAdapter implements IOFMessageListener
 			logger.info("Update load hash map " + ctrlLoad.toString());
 		}
 		
-	    System.out.println(msg.getSrc() + ": " + (msg.getObject() instanceof LoadInfo));
+	    System.out.println(msg.getSrc() + ": is load? " + (msg.getObject() instanceof LoadInfo) + ": " + msg.getObject().toString());
 	    System.out.println("View:\n" + channel.getView());
 	    System.out.println("Address:\n" + channel.getAddress());
 	}

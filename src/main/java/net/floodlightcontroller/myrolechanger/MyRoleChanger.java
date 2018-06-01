@@ -128,7 +128,8 @@ public class MyRoleChanger extends ReceiverAdapter implements IFloodlightModule,
 		floodlightProvider = context.getServiceImpl(IFloodlightProviderService.class);
 		logger = LoggerFactory.getLogger(MyRoleChanger.class);
 
-
+		ctrlAddress = new HashMap<>();
+		
 		 Map<String, String> configParams = context.getConfigParams(FloodlightProvider.class);
 		 controllerId = configParams.get("controllerId");
 		statisticCollector = context.getServiceImpl(IStatisticsService.class);
@@ -140,8 +141,9 @@ public class MyRoleChanger extends ReceiverAdapter implements IFloodlightModule,
 		floodlightProvider.addOFMessageListener(OFType.PACKET_IN, this);
 		try {
 			channel= new JChannel().setReceiver(this); // use the default config, udp.xml
-			channel.connect("RoleChangerChat");
-			channel.send(null, "FIRST JOIN, MY (RoleChanger) ADDRESS: " + channel.getAddress());
+			channel.connect("CollectorChat");
+//			channel.send(null, "FIRST JOIN, MY (RoleChanger) ADDRESS: " + channel.getAddress());
+			broadcastControllerId();
 			
 		} catch(Exception ex) {
 			ex.printStackTrace();
@@ -158,43 +160,53 @@ public class MyRoleChanger extends ReceiverAdapter implements IFloodlightModule,
 	// *************************
 	//      JGroups methods
 	// *************************
+
 	public void viewAccepted(View new_view) {
 	    System.out.println("** view: " + new_view);
 	}
 
+//	public void receive(Message msg) {
+//		if(msg.getObject() instanceof LoadInfo) {
+//			LoadInfo info = (LoadInfo)msg.getObject();
+//			ctrlLoad.put(info.controllerId, info.throughput);
+//			logger.info("Update load hash map " + ctrlLoad.toString());
+//		}
+//		
+//	    System.out.println(msg.getSrc() + ": is load? " + (msg.getObject() instanceof LoadInfo) + ": " + msg.getObject().toString());
+//	    System.out.println("View:\n" + channel.getView());
+//	    System.out.println("Address:\n" + channel.getAddress());
+//	}
+
 	public void receive(Message msg) {
-		if(msg.getObject() instanceof AddressInfo) {
-			AddressInfo info = (AddressInfo)msg.getObject();
-			ctrlAddress.put(info.controllerId, info.address);
-			logger.info("Update address hash map " + ctrlAddress.toString());
-		}
-		
-	    System.out.println(msg.getSrc() + ": " + (msg.getObject() instanceof LoadInfo));
+	    try {
+			if(msg.getObject() instanceof AddressInfo) {
+				AddressInfo info = (AddressInfo)msg.getObject();
+				ctrlAddress.put(info.controllerId, msg.getSrc());
+				logger.info("Update address hash map " + ctrlAddress.toString());
+			}
+	    } catch(Exception ex){
+	    	ex.printStackTrace();
+	    }
+	    
+	    System.out.println(msg.getSrc() + ": is address? " + (msg.getObject() instanceof AddressInfo) + ": " + msg.getObject().toString());
 	    System.out.println("View:\n" + channel.getView());
 	    System.out.println("Address:\n" + channel.getAddress());
 	}
 	
-	public void broadcastAddress(Address address) {		
+	public void broadcastControllerId() {		
 		try {
-			channel.send(null, new AddressInfo(controllerId, channel.getAddress()));
-            logger.info("Broadcast my address: " + channel.getAddress());
+			channel.send(null, new AddressInfo(controllerId));
+            logger.info("Broadcast my id: " + channel.getAddress());
 		}
-		catch (Exception e) {
-			System.out.print(e.toString());
+		catch (Exception ex) {
+			ex.printStackTrace();
 		}
 	}
+			
+	// **********************************
+	//      Switch migration methods
+	// **********************************
 	
-	public void sendMessage(String message) {
-		try {
-//			Address a = ctrlLoads.keySet().iterator().next();
-//			channel.send(a, message);
-//            logger.info("sending "+ message + "to " + a);
-		}
-		catch (Exception e) {
-			System.out.print(e.toString());
-		}
-	}
-
 	@Override
 	public void doSwitchMigration(Address ctrlAddress, Integer ctrlThreshold,
 								  HashMap<Address, Double> ctrlLoads,

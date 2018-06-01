@@ -2,7 +2,6 @@ package net.floodlightcontroller.loadcollector;
 
 import java.io.Serializable;
 
-import org.jgroups.Address;
 
 public class LoadInfo implements Serializable{
 	protected String controllerId;

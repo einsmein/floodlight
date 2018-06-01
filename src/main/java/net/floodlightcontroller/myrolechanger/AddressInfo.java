@@ -1,13 +1,13 @@
 package net.floodlightcontroller.myrolechanger;
 
+import java.io.Serializable;
+
 import org.jgroups.Address;
 
-public class AddressInfo {
+public class AddressInfo implements Serializable{
 	protected String controllerId;
-	protected Address address;
 	
-	public AddressInfo(String cid, Address addr) {
+	public AddressInfo(String cid) {
 		this.controllerId = cid;
-		this.address = addr;
 	}
 }
