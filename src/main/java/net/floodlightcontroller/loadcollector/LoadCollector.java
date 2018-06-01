@@ -48,8 +48,7 @@ public class LoadCollector extends ReceiverAdapter implements IOFMessageListener
 	protected IDebugCounterService debugCounterService;
 
 	private IDebugCounter ctrPacketIn;
-//	private ZKConnector zoo;
-	private HashMap<Address, Double> ctrlLoads; 
+	private HashMap<String, Double> ctrlLoad;
 	
 	protected Set<Long> macAddresses;
 	protected static Logger logger;
@@ -106,7 +105,7 @@ public class LoadCollector extends ReceiverAdapter implements IOFMessageListener
 		debugCounterService = context.getServiceImpl(IDebugCounterService.class);
 		registerDebugCounters();
 
-		ctrlLoads = new HashMap<>();
+		ctrlLoad = new HashMap<>();
 	    macAddresses = new ConcurrentSkipListSet<Long>();
 	    logger = LoggerFactory.getLogger(LoadCollector.class);
 	    numPacketIn = 0;
@@ -114,15 +113,8 @@ public class LoadCollector extends ReceiverAdapter implements IOFMessageListener
 		startCountTime = System.currentTimeMillis();
 
 		 Map<String, String> configParams = context.getConfigParams(FloodlightProvider.class);
-		 	controllerId = configParams.get("controllerId");
+		 controllerId = configParams.get("controllerId");
 		   
-//		   try {
-//		           zoo = new ZKConnector();
-//		           zoo.connect("0.0.0.0");
-//		   } catch (Exception e) {
-//		           // TODO Auto-generated catch block
-//		          e.printStackTrace();
-//		   }
 	}
 	
 	
@@ -132,13 +124,9 @@ public class LoadCollector extends ReceiverAdapter implements IOFMessageListener
 
 		try {
 			channel= new JChannel().setReceiver(this); // use the default config, udp.xml
-			channel.connect("ChatCluster");
-			channel.send(null, "FIRST JOIN, MY ADDRESS: " + channel.getAddress());
-			logger.info("Channel address: " + channel.getAddress() + "//" + channel.getAddressAsString());
-
-//			zoo.create("/" + controllerId + "Address", gson.toJson(channel.getAddress()).getBytes(), true);
-//			eventLoop();
-//			channel.close();
+			channel.connect("CollectorChat");
+			channel.send(null, "FIRST JOIN, MY (LoadCollector) ADDRESS: " + channel.getAddress());
+			
 		} catch(Exception ex) {
 			ex.printStackTrace();
 		}
@@ -162,19 +150,18 @@ public class LoadCollector extends ReceiverAdapter implements IOFMessageListener
         ctrPacketIn.increment();
         
         long numIn = ctrPacketIn.getCounterValue();
-        logger.info("Handled packet number " + numPacketIn + ", counter: " + ctrPacketIn.getCounterValue());
-
         long lastMod = ctrPacketIn.getLastModified();
         long period = lastMod-startCountTime; 
+        logger.info("Handled packet number " + numPacketIn + ", counter: " + numIn);
         
         // If the last update of packet in has been more than a minute
         // If it's the 10th packet since the last throughput update
-        if(period > 10000 || numIn % 100 == 0) {
+        if(period > 8000 || numIn % 70 == 0) {
         	throughputPacketIn = numIn*1.0/period;
         	ctrPacketIn.reset();
         	startCountTime = lastMod;
         	informLoad(throughputPacketIn);
-            
+//            sendMessage("hey from " + channel.getAddress());
         }
 		
         return Command.CONTINUE;
@@ -205,24 +192,37 @@ public class LoadCollector extends ReceiverAdapter implements IOFMessageListener
 	}
 
 	public void receive(Message msg) {
-//		if(msg.getObject().getClass() == Load.class) {
-//			ctrlLoads.put(msg.getSrc(), msg.getObject());			
-//		}
+		if(msg.getObject() instanceof LoadInfo) {
+			LoadInfo info = (LoadInfo)msg.getObject();
+			ctrlLoad.put(info.controllerId, info.throughput);
+			logger.info("Update load hash map " + ctrlLoad.toString());
+		}
 		
-	    System.out.println(msg.getSrc() + ": " + msg.getObject());
+	    System.out.println(msg.getSrc() + ": " + (msg.getObject() instanceof LoadInfo));
 	    System.out.println("View:\n" + channel.getView());
 	    System.out.println("Address:\n" + channel.getAddress());
 	}
 	
 	public void informLoad(double load) {		
 		try {
-			Message loadMsg = new Message(null, new Load(load));
-			channel.send(loadMsg);
+			channel.send(null, new LoadInfo(controllerId, load));
+            logger.info("Sent throughput message and reset counter, throughput = " + load);
 		}
 		catch (Exception e) {
 			System.out.print(e.toString());
 		}
 	}
+	
+//	public void sendMessage(String message) {
+//		try {
+//			Address a = ctrlLoads.keySet().iterator().next();
+//			channel.send(a, message);
+//            logger.info("sending "+ message + "to " + a);
+//		}
+//		catch (Exception e) {
+//			System.out.print(e.toString());
+//		}
+//	}
 	
 	// *************************
 	//  Register debug counters
