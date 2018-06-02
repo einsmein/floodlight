@@ -196,8 +196,9 @@ public class LoadCollector extends ReceiverAdapter implements IOFMessageListener
         	// ==================================================================
 
         	// Try to migrate switch if the current ctrl load exceeds CT
-        	// if (throughputPacketIn > ctrlThreshold)
-        	// 	roleChangerService.doSwitchMigration(address, ctrlThreshold, ctrlLoads, switchLoads);
+        	if (throughputPacketIn > ctrlThreshold)
+        		roleChangerService.doSwitchMigration(
+        				throughputPacketIn, ctrlThreshold, ctrlLoad, switchLoads);
         }
 		
         return Command.CONTINUE;
@@ -234,9 +235,9 @@ public class LoadCollector extends ReceiverAdapter implements IOFMessageListener
 			logger.info("Update load hash map " + ctrlLoad.toString());
 		}
 		
-	    System.out.println(msg.getSrc() + ": is load? " + (msg.getObject() instanceof LoadInfo) + ": " + msg.getObject().toString());
-	    System.out.println("View:\n" + channel.getView());
-	    System.out.println("Address:\n" + channel.getAddress());
+	    logger.info(msg.getSrc() + ": is load? " + (msg.getObject() instanceof LoadInfo) + ": " + msg.getObject().toString());
+	    logger.info("View:\n" + channel.getView());
+	    logger.info("Address:\n" + channel.getAddress());
 	}
 	
 	public void informLoad(double load) {		

@@ -147,15 +147,16 @@ public class MyRoleChanger extends ReceiverAdapter implements IFloodlightModule,
 	public void startUp(FloodlightModuleContext context)
 			throws FloodlightModuleException {
 		floodlightProvider.addOFMessageListener(OFType.ERROR, this);
-		/*try {
+		try {
 			channel= new JChannel().setReceiver(this); // use the default config, udp.xml
 			channel.connect("CollectorChat");
 //			channel.send(null, "FIRST JOIN, MY (RoleChanger) ADDRESS: " + channel.getAddress());
+
 			broadcastControllerId();
 			
 		} catch(Exception ex) {
 			ex.printStackTrace();
-		}*/
+		}
 
 	}
 
@@ -187,18 +188,37 @@ public class MyRoleChanger extends ReceiverAdapter implements IFloodlightModule,
 
 	public void receive(Message msg) {
 	    try {
-			if(msg.getObject() instanceof AddressInfo) {
-				AddressInfo info = (AddressInfo)msg.getObject();
-				ctrlAddress.put(info.controllerId, msg.getSrc());
-				logger.info("Update address hash map " + ctrlAddress.toString());
-			}
+				if(msg.getObject() instanceof AddressInfo) {
+					AddressInfo info = (AddressInfo)msg.getObject();
+					ctrlAddress.put(info.controllerId, msg.getSrc());
+					logger.info("Update address hash map " + ctrlAddress.toString());
+
+					// JUST TESTING
+					// for (OFSwitchHandshakeHandler handler: switchService.getSwitchHandshakeHandlers()) {
+					// 	migrateSwitch(info.controllerId, handler.getDpid().getLong());
+					// 	break;
+					// }
+				}
+				else if (msg.getObject() instanceof SwitchMigrateInstr) {
+					SwitchMigrateInstr m = (SwitchMigrateInstr)msg.getObject();
+
+					// Find the switch handler for the switch with received Datapathid
+					// Send role request to be a master
+					for (OFSwitchHandshakeHandler handler: switchService.getSwitchHandshakeHandlers()) {
+						if (m.dpIdRawValue == handler.getDpid().getLong()) {
+							logger.info("This controller should be master of sw with id " + m.dpIdRawValue + " and dpid " + handler.getDpid());
+							handler.sendRoleRequestIfNotPending(OFControllerRole.ROLE_MASTER);
+							break;
+						}
+					}
+				}
 	    } catch(Exception ex){
 	    	ex.printStackTrace();
 	    }
 	    
-	    System.out.println(msg.getSrc() + ": is address? " + (msg.getObject() instanceof AddressInfo) + ": " + msg.getObject().toString());
-	    System.out.println("View:\n" + channel.getView());
-	    System.out.println("Address:\n" + channel.getAddress());
+	    logger.info(msg.getSrc() + ": is address? " + (msg.getObject() instanceof AddressInfo) + ": " + msg.getObject().toString());
+	    logger.info("View:\n" + channel.getView());
+	    logger.info("Address:\n" + channel.getAddress());
 	}
 	
 	public void broadcastControllerId() {		
@@ -215,11 +235,11 @@ public class MyRoleChanger extends ReceiverAdapter implements IFloodlightModule,
 	//      Switch migration methods
 	// **********************************
 	
-	public void sendMessage(String message) {
+	public void migrateSwitch(String targetCtrlId, long dpIdRawValue) {
 		try {
-//			Address a = ctrlLoads.keySet().iterator().next();
-//			channel.send(a, message);
-//            logger.info("sending "+ message + "to " + a);
+			Address targetCtrlAddr = ctrlAddress.get(targetCtrlId);
+			channel.send(targetCtrlAddr, new SwitchMigrateInstr(dpIdRawValue));
+      logger.info("sent message to migrate sw " + dpIdRawValue + " to " + targetCtrlAddr);
 		}
 		catch (Exception e) {
 			System.out.print(e.toString());
@@ -247,7 +267,7 @@ public class MyRoleChanger extends ReceiverAdapter implements IFloodlightModule,
 				(ctrlThreshold - ctrlLoads.get(targetCtrlId)) * 0.7, swLoads);
 
 		// Send a message to the target controller containing MASTER:targetSwId
-		// ...
+		migrateSwitch(targetCtrlId, targetSwId.getLong());
 	}
 
 	private boolean isHighestLoadCtrl(Double thisCtrlLoad,
@@ -283,6 +303,7 @@ public class MyRoleChanger extends ReceiverAdapter implements IFloodlightModule,
 		return lowestLoadCtrlId;
 	}
 
+	// POTENTIAL ISSUE: What if therer is no switch satisfying the formula.
 	private DatapathId getTargetSwitch(Double loadThreshold,
 									   HashMap<DatapathId, Double> swLoads) {
 		Iterator itr = swLoads.entrySet().iterator();
@@ -293,9 +314,16 @@ public class MyRoleChanger extends ReceiverAdapter implements IFloodlightModule,
 		while (itr.hasNext()) {
 			entry = (HashMap.Entry<DatapathId, Double>) itr.next();
 
-			if (entry.getValue() < loadThreshold && entry.getValue() > targetLoad) {
-				targetLoad = entry.getValue();
-				targetId = entry.getKey();
+			if (entry.getValue() < loadThreshold) {
+				// In case the first element's load is larger than threshold
+				if (targetLoad > loadThreshold) {
+					targetLoad = entry.getValue();
+					targetId = entry.getKey();
+				}
+				else if (entry.getValue() > targetLoad) {
+					targetLoad = entry.getValue();
+					targetId = entry.getKey();
+				}
 			}
 		}
 
