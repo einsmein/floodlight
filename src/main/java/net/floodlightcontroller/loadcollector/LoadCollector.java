@@ -176,17 +176,27 @@ public class LoadCollector extends ReceiverAdapter implements IOFMessageListener
         	inpacketPerSwitchCounters.put(sw.getId(), inpacketPerSwitchCounters.get(swId) + 1);
         else
         	inpacketPerSwitchCounters.put(sw.getId(), 1);
-        // =============================================
+        // ============================================
         
         long numIn = ctrPacketIn.getCounterValue();
         long lastMod = ctrPacketIn.getLastModified();
         long period = lastMod-startCountTime; 
         logger.info("Handled packet number " + numPacketIn + ", counter: " + numIn);
+
+        logger.info("numIn = " + numIn);
+        for (HashMap.Entry<DatapathId, Integer> entry: inpacketPerSwitchCounters.entrySet()) {
+        	logger.info(entry.getKey() + " : " + entry.getValue());
+        }
         
         // If the last update of packet in has been more than a minute
         // If it's the 10th packet since the last throughput update
         if(period > 10000 || numIn % 100 == 0) {
         	double newLoad = numIn * 1.0 / (period / 1000);
+
+        	// ===================================================
+        	// Insert logging controller throughput and time.
+        	// ===================================================
+
 			logger.info("************** throughput = " + newLoad + ", prev = " + loadSegment.currentLoad);
         	boolean inform = loadSegment.updateLoad(numIn * 1.0 / (period / 1000));
         	ctrPacketIn.reset();
@@ -195,9 +205,9 @@ public class LoadCollector extends ReceiverAdapter implements IOFMessageListener
             	informLoad(newLoad);	// inform load through segment?
         	}
             
-            // Update the load of each switch (unit: INPACKET per second)
-        		for (HashMap.Entry<DatapathId, Integer> entry: inpacketPerSwitchCounters.entrySet()) {
-        		switchLoads.put(entry.getKey(), (double) (entry.getValue()) / period * 1000);
+          // Update the load of each switch (unit: INPACKET per second)
+      		for (HashMap.Entry<DatapathId, Integer> entry: inpacketPerSwitchCounters.entrySet()) {
+        		switchLoads.put(entry.getKey(), (entry.getValue() * 1.0 / (period / 1000)));
 
         		// Reset INPACKET counter for the switch
         		inpacketPerSwitchCounters.put(entry.getKey(), 0);
