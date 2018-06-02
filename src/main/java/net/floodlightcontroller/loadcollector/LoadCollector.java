@@ -147,7 +147,6 @@ public class LoadCollector extends ReceiverAdapter implements IOFMessageListener
 			channel= new JChannel().setReceiver(this); // use the default config, udp.xml
 			channel.connect("CollectorChat");
 			channel.send(null, "FIRST JOIN, MY (LoadCollector) ADDRESS: " + channel.getAddress());
-			informLoad(0);
 			
 		} catch(Exception ex) {
 			ex.printStackTrace();
@@ -235,6 +234,7 @@ public class LoadCollector extends ReceiverAdapter implements IOFMessageListener
 	    }
 	}
 	public void viewAccepted(View new_view) {
+		informLoad(loadSegment.currentLoad);
 	    System.out.println("** view: " + new_view);
 	}
 
