@@ -151,7 +151,6 @@ public class MyRoleChanger extends ReceiverAdapter implements IFloodlightModule,
 			channel.connect("CollectorChat");
 //			channel.send(null, "FIRST JOIN, MY (RoleChanger) ADDRESS: " + channel.getAddress());
 
-			broadcastControllerId();
 			
 		} catch(Exception ex) {
 			ex.printStackTrace();
@@ -170,20 +169,9 @@ public class MyRoleChanger extends ReceiverAdapter implements IFloodlightModule,
 	// *************************
 
 	public void viewAccepted(View new_view) {
+		broadcastControllerId();
 	    System.out.println("** view: " + new_view);
 	}
-
-//	public void receive(Message msg) {
-//		if(msg.getObject() instanceof LoadInfo) {
-//			LoadInfo info = (LoadInfo)msg.getObject();
-//			ctrlLoad.put(info.controllerId, info.throughput);
-//			logger.info("Update load hash map " + ctrlLoad.toString());
-//		}
-//		
-//	    System.out.println(msg.getSrc() + ": is load? " + (msg.getObject() instanceof LoadInfo) + ": " + msg.getObject().toString());
-//	    System.out.println("View:\n" + channel.getView());
-//	    System.out.println("Address:\n" + channel.getAddress());
-//	}
 
 	public void receive(Message msg) {
 	    try {
