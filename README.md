@@ -9,13 +9,21 @@ Zookeeper-3.4.10
 jgroups-4.0.11-Final
 
 ### Build and run from command line
+```bash
+ant
+java -jar target/floodlight.jar -cp src/main/resources/floodlightdefualt2.properties
+```
+
+(with Zookeeper dependency)
 From floodlight folder, execute the following lines
 ```bash
 ant
-java -cp "target/floodlight.jar:lib/*" net.floodlhtcontroller.core.Main
+java -cp "target/floodlight.jar:lib/*" net.floodlightcontroller.core.Main
 ```
 
-
+### Log to file for two controllers
+Use two xml files (`logback.xml` and `logback_.xml`).
+Set configuration file by using the option `-Dlogback.configurationFile=logback_.xml`
 
 
 Floodlight OpenFlow Controller (OSS)
