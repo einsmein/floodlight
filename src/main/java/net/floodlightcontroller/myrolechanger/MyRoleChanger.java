@@ -59,7 +59,6 @@ public class MyRoleChanger extends ReceiverAdapter implements IFloodlightModule,
 	JChannel channel;
 	protected IStatisticsService statisticCollector;
 
-
 	@Override
 	public String getName() {
 		// TODO Auto-generated method stub
@@ -138,8 +137,8 @@ public class MyRoleChanger extends ReceiverAdapter implements IFloodlightModule,
 
 		ctrlAddress = new HashMap<>();
 		
-		 Map<String, String> configParams = context.getConfigParams(FloodlightProvider.class);
-		 controllerId = configParams.get("controllerId");
+		Map<String, String> configParams = context.getConfigParams(FloodlightProvider.class);
+		controllerId = configParams.get("controllerId");
 		statisticCollector = context.getServiceImpl(IStatisticsService.class);
 	}
 
@@ -250,18 +249,34 @@ public class MyRoleChanger extends ReceiverAdapter implements IFloodlightModule,
 	// 	   Switch Migramtion
 	// ***************************
 
-@Override
-	public void doSwitchMigration(Double thisCtrlLoad, Integer ctrlThreshold,
+	@Override
+	public void doSwitchMigration(Double thisCtrlLoad, Double ctrlThreshold,
 								  HashMap<String, Double> ctrlLoads,
                                   HashMap<DatapathId, Double> swLoads) {
-		// Only the controller with the highest load can migrate switch.
-		if (!isHighestLoadCtrl(thisCtrlLoad, ctrlLoads))
+		logger.info("================================== try migration");
+		
+		if (ctrlLoads.size() == 0) {
+			logger.info("controllerLoads size is 0");
 			return;
+		}
+		
+		// Only the controller with the highest load can migrate switch.
+		if (!isHighestLoadCtrl(thisCtrlLoad, ctrlLoads)) {
+			logger.info("this controller does NOT have the highest load");
+			return;
+		}
+		else
+			logger.info("this controller has the highest load");
 
 		// Migrate to the controller with lowest load.
 		// PROBLEM: we are ignoring the fact that this controller can exceed CT.
 		String targetCtrlId = getLowestLoadCtrl(ctrlLoads);
 
+		if (swLoads.size() == 0 || targetCtrlId.length() == 0) {
+			logger.info("swLoads size is 0 or size of targetCtrlId is 0");
+			return;
+		}
+		
 		// Find target switch to migrate whose load is closest the following value.
 		DatapathId targetSwId = getTargetSwitch(
 				(ctrlThreshold - ctrlLoads.get(targetCtrlId)) * 0.7, swLoads);
@@ -275,6 +290,10 @@ public class MyRoleChanger extends ReceiverAdapter implements IFloodlightModule,
 		Double highestLoad = thisCtrlLoad;
 
 		for (HashMap.Entry<String, Double> entry: ctrlLoads.entrySet()) {
+			if (controllerId.equals(entry.getKey()))
+				continue;
+			
+			logger.info("comparing load with " + entry.getKey() + " : " + entry.getValue());
 			if (entry.getValue() > thisCtrlLoad) {
 				return false;
 			}
@@ -284,7 +303,7 @@ public class MyRoleChanger extends ReceiverAdapter implements IFloodlightModule,
 	}
 
 	private String getLowestLoadCtrl(HashMap<String, Double> ctrlLoads) {
-		Iterator itr = ctrlLoads.entrySet().iterator();
+/*		Iterator itr = ctrlLoads.entrySet().iterator();
 		HashMap.Entry<String, Double> entry = (HashMap.Entry<String, Double>) itr;
 
 		// Set the first element of HashMap as return value
@@ -298,15 +317,37 @@ public class MyRoleChanger extends ReceiverAdapter implements IFloodlightModule,
 				lowestLoad = entry.getValue();
 				lowestLoadCtrlId = entry.getKey();
 			}
+		}*/
+				
+		double lowestLoad = 100.0;
+		String lowestLoadCtrlId = "";
+		
+		logger.info("finding lowest load controller");
+		
+		for (HashMap.Entry<String, Double> entry: ctrlLoads.entrySet()) {			
+			logger.info(entry.getKey() + " : " + entry.getValue());
+			
+			if (entry.getKey().equals(controllerId))
+			{
+				logger.info("skipped.");
+				continue;
+			}
+			
+			if (entry.getValue() < lowestLoad) {
+				lowestLoad = entry.getValue();
+				lowestLoadCtrlId = entry.getKey();
+			}
 		}
+		
+		logger.info("lowest one is: " + lowestLoadCtrlId + " : " + lowestLoad);
 
 		return lowestLoadCtrlId;
 	}
 
-	// POTENTIAL ISSUE: What if therer is no switch satisfying the formula.
+	// POTENTIAL ISSUE: What if there is no switch satisfying the formula.
 	private DatapathId getTargetSwitch(Double loadThreshold,
 									   HashMap<DatapathId, Double> swLoads) {
-		Iterator itr = swLoads.entrySet().iterator();
+		/*Iterator itr = swLoads.entrySet().iterator();
 		HashMap.Entry<DatapathId, Double> entry = (HashMap.Entry<DatapathId, Double>) itr;
 		DatapathId targetId = entry.getKey();
 		Double targetLoad = entry.getValue();
@@ -324,6 +365,19 @@ public class MyRoleChanger extends ReceiverAdapter implements IFloodlightModule,
 					targetLoad = entry.getValue();
 					targetId = entry.getKey();
 				}
+			}
+		}*/
+		
+		logger.info("finding good switch lower than " + loadThreshold);
+		
+		DatapathId targetId = swLoads.entrySet().iterator().next().getKey();
+		Double targetLoad = 0.0;
+		
+		for (HashMap.Entry<DatapathId, Double> entry: swLoads.entrySet()) {
+			logger.info("considering " + entry.getKey() + " : " + entry.getValue());
+			if (entry.getValue() < loadThreshold && entry.getValue() > targetLoad) {
+				targetLoad = entry.getValue();
+				targetId = entry.getKey();
 			}
 		}
 

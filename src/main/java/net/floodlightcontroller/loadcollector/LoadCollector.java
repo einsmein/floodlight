@@ -42,6 +42,8 @@ import org.jgroups.ReceiverAdapter;
 import org.jgroups.View;
 
 import org.projectfloodlight.openflow.types.DatapathId;
+
+import net.floodlightcontroller.myrolechanger.AddressInfo;
 import net.floodlightcontroller.myrolechanger.IMyRoleChangerService;
 
 public class LoadCollector extends ReceiverAdapter implements IOFMessageListener, IFloodlightModule {
@@ -58,7 +60,7 @@ public class LoadCollector extends ReceiverAdapter implements IOFMessageListener
 	// HashMap to store INPACKETs from each switch since last switch load update.
 	private HashMap<DatapathId, Integer> inpacketPerSwitchCounters;
 
-	private Integer ctrlThreshold;
+	private double ctrlThreshold;
 
 	
 	protected Set<Long> macAddresses;
@@ -134,7 +136,7 @@ public class LoadCollector extends ReceiverAdapter implements IOFMessageListener
 		
 		switchLoads = new HashMap<>();
 		inpacketPerSwitchCounters = new HashMap<>();
-		ctrlThreshold = 50;
+		ctrlThreshold = 1.0;
 	}
 	
 	@Override
@@ -145,6 +147,7 @@ public class LoadCollector extends ReceiverAdapter implements IOFMessageListener
 			channel= new JChannel().setReceiver(this); // use the default config, udp.xml
 			channel.connect("CollectorChat");
 			channel.send(null, "FIRST JOIN, MY (LoadCollector) ADDRESS: " + channel.getAddress());
+			informLoad(0);
 			
 		} catch(Exception ex) {
 			ex.printStackTrace();
@@ -184,7 +187,6 @@ public class LoadCollector extends ReceiverAdapter implements IOFMessageListener
         // If the last update of packet in has been more than a minute
         // If it's the 10th packet since the last throughput update
         if(period > 10000 || numIn % 100 == 0) {
-//        	throughputPacketIn = numIn * 1.0 / (period / 1000);
         	double newLoad = numIn * 1.0 / (period / 1000);
 			logger.info("************** throughput = " + newLoad + ", prev = " + loadSegment.currentLoad);
         	boolean inform = loadSegment.updateLoad(numIn * 1.0 / (period / 1000));
@@ -194,8 +196,8 @@ public class LoadCollector extends ReceiverAdapter implements IOFMessageListener
             	informLoad(newLoad);	// inform load through segment?
         	}
             
-          // Update the load of each switch (unit: INPACKET per second)
-        	for (HashMap.Entry<DatapathId, Integer> entry: inpacketPerSwitchCounters.entrySet()) {
+            // Update the load of each switch (unit: INPACKET per second)
+        		for (HashMap.Entry<DatapathId, Integer> entry: inpacketPerSwitchCounters.entrySet()) {
         		switchLoads.put(entry.getKey(), (double) (entry.getValue()) / period * 1000);
 
         		// Reset INPACKET counter for the switch
@@ -204,9 +206,9 @@ public class LoadCollector extends ReceiverAdapter implements IOFMessageListener
         	// ==================================================================
 
         	// Try to migrate switch if the current ctrl load exceeds CT
-        	if (throughputPacketIn > ctrlThreshold)
+        	if (newLoad > ctrlThreshold)
         		roleChangerService.doSwitchMigration(
-        				throughputPacketIn, ctrlThreshold, ctrlLoad, switchLoads);
+        				newLoad, ctrlThreshold, ctrlLoad, switchLoads);
         }
 		
         return Command.CONTINUE;
@@ -248,6 +250,7 @@ public class LoadCollector extends ReceiverAdapter implements IOFMessageListener
 	    logger.info("Address:\n" + channel.getAddress());
 	}
 	
+
 	public void informLoad(double load) {		
 		try {
 			channel.send(null, new LoadInfo(controllerId, load));

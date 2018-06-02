@@ -13,7 +13,7 @@ public class LoadSegment {
 	
 	// return boolean value whether the load has crossed segment
 	public boolean updateLoad(double load) {
-		int newSegment = 4;
+		int newSegment = segment.length;
 		for(int i = 0; i < segment.length; i++) {
 			if(load<segment[i]) {
 				newSegment = i;
