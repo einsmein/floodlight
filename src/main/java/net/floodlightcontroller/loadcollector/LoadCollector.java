@@ -64,10 +64,12 @@ public class LoadCollector extends ReceiverAdapter implements IOFMessageListener
 	protected Set<Long> macAddresses;
 	protected static Logger logger;
 	protected int numPacketIn;
-	protected double throughputPacketIn;
+//	protected double throughputPacketIn;
 	protected long startCountTime;
 	protected String controllerId;
 	private final String PACKAGE = LoadCollector.class.getPackage().getName();
+	
+	protected LoadSegment loadSegment;
 
     JChannel channel;
     String user_name=System.getProperty("user.name", "n/a");
@@ -117,18 +119,19 @@ public class LoadCollector extends ReceiverAdapter implements IOFMessageListener
 		debugCounterService = context.getServiceImpl(IDebugCounterService.class);
 		roleChangerService = context.getServiceImpl(IMyRoleChangerService.class);
 
+		Map<String, String> configParams = context.getConfigParams(FloodlightProvider.class);
+		controllerId = configParams.get("controllerId");
+		 
 		registerDebugCounters();
 
 		ctrlLoad = new HashMap<>();
 	    macAddresses = new ConcurrentSkipListSet<Long>();
 	    logger = LoggerFactory.getLogger(LoadCollector.class);
 	    numPacketIn = 0;
-	    throughputPacketIn = 0;
+//	    throughputPacketIn = 0;
 		startCountTime = System.currentTimeMillis();
-
-		 Map<String, String> configParams = context.getConfigParams(FloodlightProvider.class);
-		 controllerId = configParams.get("controllerId");
-
+		loadSegment = new LoadSegment();
+		
 		switchLoads = new HashMap<>();
 		inpacketPerSwitchCounters = new HashMap<>();
 		ctrlThreshold = 50;
@@ -181,10 +184,15 @@ public class LoadCollector extends ReceiverAdapter implements IOFMessageListener
         // If the last update of packet in has been more than a minute
         // If it's the 10th packet since the last throughput update
         if(period > 10000 || numIn % 100 == 0) {
-        	throughputPacketIn = numIn * 1.0 / (period / 1000);
+//        	throughputPacketIn = numIn * 1.0 / (period / 1000);
+        	double newLoad = numIn * 1.0 / (period / 1000);
+			logger.info("************** throughput = " + newLoad + ", prev = " + loadSegment.currentLoad);
+        	boolean inform = loadSegment.updateLoad(numIn * 1.0 / (period / 1000));
         	ctrPacketIn.reset();
         	startCountTime = lastMod;
-        	informLoad(throughputPacketIn);	// inform load through segment?
+        	if (inform) {
+            	informLoad(newLoad);	// inform load through segment?
+        	}
             
           // Update the load of each switch (unit: INPACKET per second)
         	for (HashMap.Entry<DatapathId, Integer> entry: inpacketPerSwitchCounters.entrySet()) {
@@ -242,7 +250,7 @@ public class LoadCollector extends ReceiverAdapter implements IOFMessageListener
 	public void informLoad(double load) {		
 		try {
 			channel.send(null, new LoadInfo(controllerId, load));
-      logger.info("Sent throughput message and reset counter, throughput = " + load);
+			logger.info("Sent throughput message and reset counter, throughput = " + load);
 		}
 		catch (Exception e) {
 			System.out.print(e.toString());
