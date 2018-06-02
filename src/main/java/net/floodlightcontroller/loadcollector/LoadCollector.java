@@ -116,7 +116,7 @@ public class LoadCollector extends ReceiverAdapter implements IOFMessageListener
 	}
 
 	@Override
-	public void init(FloodlightModuleContext context) throws FloodlightModuleException {
+	public void init(FloodlightModuleContext context) throws FloodlightModuleException {        
 		floodlightProvider = context.getServiceImpl(IFloodlightProviderService.class);
 		debugCounterService = context.getServiceImpl(IDebugCounterService.class);
 		roleChangerService = context.getServiceImpl(IMyRoleChangerService.class);

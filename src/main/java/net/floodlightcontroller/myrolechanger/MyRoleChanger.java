@@ -37,6 +37,7 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.logging.FileHandler;
 import java.util.Set;
 
 import net.floodlightcontroller.packet.Ethernet;
@@ -54,8 +55,7 @@ public class MyRoleChanger extends ReceiverAdapter implements IFloodlightModule,
 	protected String controllerId;
 	protected HashMap<String, Address> ctrlAddress;
 	protected IOFSwitchService switchService;
-	// protected IRestApiService restApi;
-	
+
 	JChannel channel;
 	protected IStatisticsService statisticCollector;
 
