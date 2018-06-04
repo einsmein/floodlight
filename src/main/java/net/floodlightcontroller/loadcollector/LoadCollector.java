@@ -126,17 +126,17 @@ public class LoadCollector extends ReceiverAdapter implements IOFMessageListener
 		 
 		registerDebugCounters();
 
+		ctrlThreshold = 50.0;
 		ctrlLoad = new HashMap<>();
 	    macAddresses = new ConcurrentSkipListSet<Long>();
 	    logger = LoggerFactory.getLogger(LoadCollector.class);
 	    numPacketIn = 0;
 //	    throughputPacketIn = 0;
 		startCountTime = System.currentTimeMillis();
-		loadSegment = new LoadSegment();
+		loadSegment = new LoadSegment(ctrlThreshold);
 		
 		switchLoads = new HashMap<>();
 		inpacketPerSwitchCounters = new HashMap<>();
-		ctrlThreshold = 1.0;
 	}
 	
 	@Override
@@ -184,30 +184,31 @@ public class LoadCollector extends ReceiverAdapter implements IOFMessageListener
         logger.info("Handled packet number " + numPacketIn + ", counter: " + numIn);
 
         logger.info("numIn = " + numIn);
-        for (HashMap.Entry<DatapathId, Integer> entry: inpacketPerSwitchCounters.entrySet()) {
-        	logger.info(entry.getKey() + " : " + entry.getValue());
-        }
+//        for (HashMap.Entry<DatapathId, Integer> entry: inpacketPerSwitchCounters.entrySet()) {
+//        	logger.info(entry.getKey() + " : " + entry.getValue());
+//        }
         
         // If the last update of packet in has been more than a minute
         // If it's the 10th packet since the last throughput update
         if(period > 10000 || numIn % 100 == 0) {
-        	double newLoad = numIn * 1.0 / (period / 1000);
+        	double newLoad = numIn * 1.0 / (period * 1.0 / 1000);
 
         	// ===================================================
         	// Insert logging controller throughput and time.
         	// ===================================================
 
 			logger.info("************** throughput = " + newLoad + ", prev = " + loadSegment.currentLoad);
-        	boolean inform = loadSegment.updateLoad(numIn * 1.0 / (period / 1000));
+        	boolean inform = loadSegment.updateLoad(newLoad);
         	ctrPacketIn.reset();
         	startCountTime = lastMod;
         	if (inform) {
-            	informLoad(newLoad);	// inform load through segment?
+            	LoadInfo.informLoad(channel, controllerId, newLoad);	// inform load through segment?
+    			logger.info("Sent throughput message and reset counter, throughput = " + newLoad);
         	}
             
           // Update the load of each switch (unit: INPACKET per second)
       		for (HashMap.Entry<DatapathId, Integer> entry: inpacketPerSwitchCounters.entrySet()) {
-        		switchLoads.put(entry.getKey(), (entry.getValue() * 1.0 / (period / 1000)));
+        		switchLoads.put(entry.getKey(), (entry.getValue() * 1.0 / (period * 1.0 / 1000)));
 
         		// Reset INPACKET counter for the switch
         		inpacketPerSwitchCounters.put(entry.getKey(), 0);
@@ -244,7 +245,7 @@ public class LoadCollector extends ReceiverAdapter implements IOFMessageListener
 	    }
 	}
 	public void viewAccepted(View new_view) {
-		informLoad(loadSegment.currentLoad);
+		LoadInfo.informLoad(channel, controllerId, loadSegment.currentLoad);
 	    System.out.println("** view: " + new_view);
 	}
 
@@ -261,15 +262,15 @@ public class LoadCollector extends ReceiverAdapter implements IOFMessageListener
 	}
 	
 
-	public void informLoad(double load) {		
-		try {
-			channel.send(null, new LoadInfo(controllerId, load));
-			logger.info("Sent throughput message and reset counter, throughput = " + load);
-		}
-		catch (Exception e) {
-			System.out.print(e.toString());
-		}
-	}
+//	public void informLoad(double load) {		
+//		try {
+//			channel.send(null, new LoadInfo(controllerId, load));
+//			logger.info("Sent throughput message and reset counter, throughput = " + load);
+//		}
+//		catch (Exception e) {
+//			System.out.print(e.toString());
+//		}
+//	}
 
 	// *************************
 	//  Register debug counters

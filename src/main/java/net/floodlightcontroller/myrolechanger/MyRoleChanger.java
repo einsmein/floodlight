@@ -182,7 +182,7 @@ public class MyRoleChanger extends ReceiverAdapter implements IFloodlightModule,
 
 					// JUST TESTING
 					// for (OFSwitchHandshakeHandler handler: switchService.getSwitchHandshakeHandlers()) {
-					// 	migrateSwitch(info.controllerId, handler.getDpid().getLong());
+					// 	migrateSwitch(info.controllerId, handler`.getDpid().getLong());
 					// 	break;
 					// }
 				}
@@ -193,12 +193,14 @@ public class MyRoleChanger extends ReceiverAdapter implements IFloodlightModule,
 					// Send role request to be a master
 					for (OFSwitchHandshakeHandler handler: switchService.getSwitchHandshakeHandlers()) {
 						if (m.dpIdRawValue == handler.getDpid().getLong()) {
+							logSwitchRoles();
 							logger.info("This controller should be master of sw with id " + m.dpIdRawValue + " and dpid " + handler.getDpid());
 							handler.sendRoleRequestIfNotPending(OFControllerRole.ROLE_MASTER);
 							break;
 						}
 					}
 				}
+				
 	    } catch(Exception ex){
 	    	ex.printStackTrace();
 	    }
@@ -222,15 +224,17 @@ public class MyRoleChanger extends ReceiverAdapter implements IFloodlightModule,
 	//      Switch migration methods
 	// **********************************
 	
-	public void migrateSwitch(String targetCtrlId, long dpIdRawValue) {
+	public boolean migrateSwitch(String targetCtrlId, long dpIdRawValue) {
 		try {
 			Address targetCtrlAddr = ctrlAddress.get(targetCtrlId);
 			channel.send(targetCtrlAddr, new SwitchMigrateInstr(dpIdRawValue));
-      logger.info("sent message to migrate sw " + dpIdRawValue + " to " + targetCtrlAddr);
+			logger.info("sent message to migrate sw " + dpIdRawValue + " to " + targetCtrlAddr);
 		}
 		catch (Exception e) {
 			System.out.print(e.toString());
+			return false;
 		}
+		return true;		
 	}
 
 	// ***************************
@@ -263,14 +267,22 @@ public class MyRoleChanger extends ReceiverAdapter implements IFloodlightModule,
 		if (swLoads.size() == 0 || targetCtrlId.length() == 0) {
 			logger.info("swLoads size is 0 or size of targetCtrlId is 0");
 			return;
-		}
+		}		
 		
 		// Find target switch to migrate whose load is closest the following value.
 		DatapathId targetSwId = getTargetSwitch(
 				(ctrlThreshold - ctrlLoads.get(targetCtrlId)) * 0.7, swLoads);
+		
+		if (swLoads.get(targetSwId) > ((ctrlThreshold - ctrlLoads.get(targetCtrlId)) * 0.7)) {
+			logger.info("no switch satisfies the condition -> no migration");
+			return;
+		}
 
 		// Send a message to the target controller containing MASTER:targetSwId
-		migrateSwitch(targetCtrlId, targetSwId.getLong());
+		boolean migrated = migrateSwitch(targetCtrlId, targetSwId.getLong());
+		if (migrated) {
+			LoadInfo.informLoad(channel, controllerId, ctrlLoads.get(controllerId) - swLoads.get(targetSwId));
+		}
 	}
 
 	private boolean isHighestLoadCtrl(Double thisCtrlLoad,
@@ -334,28 +346,7 @@ public class MyRoleChanger extends ReceiverAdapter implements IFloodlightModule,
 
 	// POTENTIAL ISSUE: What if there is no switch satisfying the formula.
 	private DatapathId getTargetSwitch(Double loadThreshold,
-									   HashMap<DatapathId, Double> swLoads) {
-		/*Iterator itr = swLoads.entrySet().iterator();
-		HashMap.Entry<DatapathId, Double> entry = (HashMap.Entry<DatapathId, Double>) itr;
-		DatapathId targetId = entry.getKey();
-		Double targetLoad = entry.getValue();
-
-		while (itr.hasNext()) {
-			entry = (HashMap.Entry<DatapathId, Double>) itr.next();
-
-			if (entry.getValue() < loadThreshold) {
-				// In case the first element's load is larger than threshold
-				if (targetLoad > loadThreshold) {
-					targetLoad = entry.getValue();
-					targetId = entry.getKey();
-				}
-				else if (entry.getValue() > targetLoad) {
-					targetLoad = entry.getValue();
-					targetId = entry.getKey();
-				}
-			}
-		}*/
-		
+									   HashMap<DatapathId, Double> swLoads) {		
 		logger.info("finding good switch lower than " + loadThreshold);
 		
 		DatapathId targetId = swLoads.entrySet().iterator().next().getKey();
@@ -370,5 +361,27 @@ public class MyRoleChanger extends ReceiverAdapter implements IFloodlightModule,
 		}
 
 		return targetId;
+	}
+	
+	//*********************
+	//      Logging
+	//*********************
+	public void logSwitchRoles() {
+
+        Map<DatapathId, IOFSwitch> switchMap = switchService.getAllSwitchMap();
+        
+        for (Map.Entry e: switchMap.entrySet())
+        {
+        	IOFSwitch swe = (IOFSwitch) e.getValue();
+        	DatapathId id = (DatapathId) e.getKey();
+        	
+        	if (swe.getControllerRole() == OFControllerRole.ROLE_MASTER)
+        		logger.info("Controller is MASTER of switch " + id);
+        	else if (swe.getControllerRole() == OFControllerRole.ROLE_SLAVE)
+            		logger.info("Controller is SLAVE of switch " + id);
+        	else
+        		logger.info("Controller is EQUAL of switch " + id);
+        }
+        
 	}
 }

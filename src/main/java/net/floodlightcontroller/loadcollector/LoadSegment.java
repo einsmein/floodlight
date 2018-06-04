@@ -5,10 +5,10 @@ public class LoadSegment {
 	double currentLoad;
 	int currentSegment;
 	
-	public LoadSegment() {
+	public LoadSegment(double CT) {
 		this.currentLoad = 0;
 		this.currentSegment = 0;
-		this.segment = new double[] {0.4, 0.9, 1.3, 1.5};
+		this.segment = new double[] {0.35*CT, 0.6*CT, 0.8*CT, 0.95*CT};
 	}
 	
 	// return boolean value whether the load has crossed segment
