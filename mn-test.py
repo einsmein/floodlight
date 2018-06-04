@@ -2,6 +2,7 @@
 
 import os
 import time
+from datetime import datetime
 
 from mininet.net import Mininet
 from mininet.node import Controller, RemoteController
@@ -35,7 +36,7 @@ def myNet():
     host_list_1 = ['10.0.0.'+str(i+1) for i in range(255)]
     host_list_1 += ['10.0.1.'+str(i-256) for i in range(256, 309)]
 
-    switch_list =  [net.addSwitch('s'+str(i+1), protocols='OpenFlow13') for i in range(8)]
+    switch_list =  [net.addSwitch('s'+str(i+1), protocols='OpenFlow14') for i in range(8)]
     
     for i in range(7):
 	net.addLink(switch_list[i], switch_list[i+1])
@@ -72,7 +73,18 @@ def myNet():
 
     # Connect each switch to a different controller
     for i in range(8):
-	switch_list[i].start([c0, c1])
+        if i < 4:
+            switch_list[i].start([c0])
+        else:
+            switch_list[i].start([c1])
+
+    time.sleep(6)
+
+    for i in range(8):
+        if i < 4:
+            switch_list[i].start([c1])
+        else:
+            switch_list[i].start([c0])    
 
     #s1.start( [c0] )
     #s2.start( [c0] )
@@ -82,16 +94,19 @@ def myNet():
     # net.ping([host_list[0], host_list[1]])
     
     raw_input()
+    f = open('ping_time.log', 'w')
 
     for i in range(len(list_final)):
     #for i in range(30):
-	print('handlign packet number' + str(i))
+        f.write(str(datetime.now()) + '\n')
+        print('Handling packet number' + str(i))
         host_list[list_final[i][0]].cmdPrint('fping -c1 -t300 ' + host_list_1[list_final[i][1]])
 
         if i != len(list_final) - 1:
 	    print('sleep for' + str((list_final[i+1][2] - list_final[i][2])/592*30))
             time.sleep((list_final[i+1][2] - list_final[i][2])/592*30)
 
+    f.close()
     # host_list[0].cmdPrint('ping -c 1 10.0.0.2')
     # s1.cmdPrint('ovs-vsctl show')
 

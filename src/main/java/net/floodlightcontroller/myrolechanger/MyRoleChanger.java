@@ -280,9 +280,9 @@ public class MyRoleChanger extends ReceiverAdapter implements IFloodlightModule,
 
 		// Send a message to the target controller containing MASTER:targetSwId
 		boolean migrated = migrateSwitch(targetCtrlId, targetSwId.getLong());
-		if (migrated) {
-			LoadInfo.informLoad(channel, controllerId, ctrlLoads.get(controllerId) - swLoads.get(targetSwId));
-		}
+		// if (migrated) {
+		// 	LoadInfo.informLoad(channel, controllerId, ctrlLoads.get(controllerId) - swLoads.get(targetSwId));
+		// }
 	}
 
 	private boolean isHighestLoadCtrl(Double thisCtrlLoad,
